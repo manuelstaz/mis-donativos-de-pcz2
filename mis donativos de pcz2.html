@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patronato Zacualpan</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #f4f4f4; }
+        .container { max-width: 400px; margin: auto; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        input, button { width: 100%; padding: 10px; margin: 10px 0; }
+        canvas { max-width: 100%; }
+        .logo { width: 100px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container" id="login-container">
+        <img src="patronato_logo.JPG" alt="Logo Patronato" class="logo">
+        <h2>Inicio de Sesión</h2>
+        <input type="text" id="nombre" placeholder="Nombre">
+        <input type="password" id="password" placeholder="Contraseña">
+        <button onclick="login()">Ingresar</button>
+        <button onclick="recuperarContrasena()">¿Olvidaste tu contraseña?</button>
+    </div>
+
+    <div class="container" id="dashboard" style="display:none;">
+        <h2>Panel de Control</h2>
+        <p>Saldo actual: <span id="saldo">$0</span></p>
+        <button onclick="cambiarContrasena()">Cambiar Contraseña</button>
+        <div id="admin-controls" style="display:none;">
+            <input type="number" id="montoIngreso" placeholder="Monto del ingreso">
+            <button onclick="agregarIngreso()">Agregar Ingreso</button>
+            <button onclick="registrarEgreso()">Registrar Egreso</button>
+            <button onclick="generarRecibo()">Generar Recibo</button>
+        </div>
+        <canvas id="balanceChart"></canvas>
+    </div>
+
+    <script>
+        let saldo = 0;
+        const admins = {
+            "presidente": "admin123",
+            "tesorero": "admin456",
+            "secretario": "admin789",
+            "vocal1": "admin101",
+            "vocal2": "admin102"
+        };
+        let isAdmin = false;
+        
+        function login() {
+            let nombre = document.getElementById('nombre').value.trim().toLowerCase();
+            let password = document.getElementById('password').value.trim();
+            
+            if (admins.hasOwnProperty(nombre) && admins[nombre] === password) {
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                isAdmin = true;
+                document.getElementById('admin-controls').style.display = 'block';
+                Swal.fire('Bienvenido', 'Has iniciado sesión correctamente.', 'success');
+            } else {
+                Swal.fire('Error', 'Nombre o contraseña incorrectos.', 'error');
+            }
+        }
+
+        function recuperarContrasena() {
+            let nombre = prompt("Ingrese su nombre para recuperar la contraseña:").trim().toLowerCase();
+            if (admins.hasOwnProperty(nombre)) {
+                Swal.fire('Recuperación de contraseña', `Su contraseña es: ${admins[nombre]}`, 'info');
+            } else {
+                Swal.fire('Error', 'Nombre no registrado.', 'error');
+            }
+        }
+
+        function cambiarContrasena() {
+            let nombre = prompt("Ingrese su nombre:").trim().toLowerCase();
+            if (admins.hasOwnProperty(nombre)) {
+                let nuevaContrasena = prompt("Ingrese su nueva contraseña:");
+                if (nuevaContrasena) {
+                    admins[nombre] = nuevaContrasena;
+                    Swal.fire('Éxito', 'Contraseña cambiada correctamente.', 'success');
+                }
+            } else {
+                Swal.fire('Error', 'Nombre no registrado.', 'error');
+            }
+        }
+
+        function agregarIngreso() {
+            if (isAdmin) {
+                let monto = parseFloat(document.getElementById('montoIngreso').value);
+                if (!isNaN(monto) && monto > 0) {
+                    saldo += monto;
+                    actualizarSaldo();
+                } else {
+                    Swal.fire('Error', 'Ingrese un monto válido.', 'error');
+                }
+            } else {
+                Swal.fire('Acceso denegado', 'Solo administradores pueden agregar ingresos.', 'error');
+            }
+        }
+
+        function registrarEgreso() {
+            if (isAdmin) {
+                let monto = parseFloat(prompt('Ingrese el monto del egreso:'));
+                if (!isNaN(monto) && monto > 0) {
+                    saldo -= monto;
+                    actualizarSaldo();
+                }
+            } else {
+                Swal.fire('Acceso denegado', 'Solo administradores pueden registrar egresos.', 'error');
+            }
+        }
+
+        function actualizarSaldo() {
+            document.getElementById('saldo').innerText = `$${saldo}`;
+        }
+
+        function generarRecibo() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(16);
+            doc.text("Recibo de Donación", 80, 20);
+            doc.setFontSize(12);
+            doc.text("Fecha: " + new Date().toLocaleDateString(), 10, 40);
+            doc.text("Monto recibido: $" + saldo, 10, 50);
+            doc.text("Gracias por su apoyo al Patronato Zacualpan.", 10, 70);
+            doc.save("recibo_donacion.pdf");
+
+            Swal.fire('Recibo generado', 'El recibo ha sido descargado.', 'success');
+        }
+    </script>
+</body>
+</html>
